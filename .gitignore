@@ -1,0 +1,47 @@
+# --- Node Modules ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Environment Variables ---
+.env
+.env.local
+.env.*.local
+
+# --- Logs ---
+logs/
+*.log
+log.txt
+
+# --- Runtime data ---
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# --- Coverage ---
+coverage/
+
+# --- Build output ---
+dist/
+build/
+
+# --- Mac system files ---
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# --- IDE Stuff ---
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# --- Node Cache ---
+.cache/
+.nyc_output/
+
+# --- Misc ---
+*.tgz
