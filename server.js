@@ -25,20 +25,9 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // MongoDB connection
-const mongoUser = encodeURIComponent(process.env.MONGODB_USER);
-const mongoPass = encodeURIComponent(process.env.MONGODB_PASSWORD);
-const mongoHost = process.env.MONGODB_HOST;
-const mongoDb   = process.env.MONGODB_DATABASE;
 
-let mongoUri;
+const mongoUri = process.env.MONGODB_URI;
 
-if (mongoUser && mongoPass) {
-
-  mongoUri = `mongodb://${mongoUser}:${mongoPass}@${mongoHost}/${mongoDb}?authSource=admin`;
-} else {
-
-  mongoUri = `mongodb://${mongoHost}/${mongoDb}`;
-}
 // Sessions stored in MongoDB
 mongoose.connect(mongoUri)
   .then(() => console.log('MongoDB connected'))

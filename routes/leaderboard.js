@@ -6,9 +6,10 @@ const User = require('../models/User');
 const requireAuth = require('../middleware/requireAuth');
 
 // POST /api/leaderboard/:levelId
+// Body: { timeSec }
 router.post('/:levelId', requireAuth, async (req, res) => {
   try {
-    const userId = req.session.userId; // from your Mongo session
+    const userId  = req.session.userId;         
     const levelId = parseInt(req.params.levelId, 10);
     const { timeSec } = req.body;
 
@@ -19,16 +20,21 @@ router.post('/:levelId', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Invalid levelId' });
     }
 
-    const timeMs = Math.round(timeSec * 1000);
+    // get username from User collection
+    const user = await User.findById(userId).lean();
+    if (!user || !user.username) {
+      return res.status(400).json({ error: 'User not found or missing username' });
+    }
+    const username = user.username;
 
-    // upsert and keep the MIN time
-    const run = await Run.findOne({ user: userId, levelId });
+    // upsert best time for this username + level
+    const existing = await Run.findOne({ username, level: levelId });
 
-    if (!run) {
-      await Run.create({ user: userId, levelId, timeMs });
-    } else if (timeMs < run.timeMs) {
-      run.timeMs = timeMs;
-      await run.save();
+    if (!existing) {
+      await Run.create({ username, level: levelId, timeSec });
+    } else if (timeSec < existing.timeSec) {
+      existing.timeSec = timeSec;
+      await existing.save();
     }
 
     return res.json({ success: true });
@@ -38,26 +44,25 @@ router.post('/:levelId', requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/leaderboard/:levelId?limit=10
+// GET /api/leaderboard/:levelId?limit=5
 router.get('/:levelId', async (req, res) => {
   try {
-    const levelId = parseInt(req.params.levelId, 10);
-    const limit = parseInt(req.query.limit || '10', 10);
+    const levelId = parseInt(req.params.levelId, 5);
+    const limit   = parseInt(req.query.limit || '5', 5);
 
     if (!Number.isInteger(levelId)) {
       return res.status(400).json({ error: 'Invalid levelId' });
     }
 
-    const runs = await Run.find({ levelId })
-      .sort({ timeMs: 1 })           // fastest first
+    const runs = await Run.find({ level: levelId })
+      .sort({ timeSec: 1 })   // fastest first
       .limit(limit)
-      .populate('user', 'username')  // get username from User collection
       .lean();
 
     const scores = runs.map(r => ({
-      playerName: r.user?.username || 'Unknown',
-      timeSec: r.timeMs / 1000,
-      createdAt: r.created_at,
+      playerName: r.username,
+      timeSec:    r.timeSec,
+      createdAt:  r.createdAt,
     }));
 
     res.json({ levelId, scores });

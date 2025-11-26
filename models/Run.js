@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 
 const runSchema = new mongoose.Schema(
   {
-    user: {
+    username: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
@@ -23,6 +23,7 @@ const runSchema = new mongoose.Schema(
 );
 
 // one best time per user per level
-runSchema.index({ user: 1, levelId: 1 }, { unique: true });
+// use the actual field name `levelId` and guard against model overwrite
+runSchema.index({ username: 1, levelId: 1 }, { unique: true });
 
-module.exports = mongoose.model('Run', runSchema);
+module.exports = mongoose.models.Run || mongoose.model('Run', runSchema);
