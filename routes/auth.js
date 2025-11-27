@@ -1,13 +1,12 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
-const GameState = require('../models/GameState');
 
 const router = express.Router();
 
 function isStrongPassword(pw) {
   if (typeof pw !== 'string') {
-    return false; // or throw, but false is fine for validation
+    return false;
   }
 
   const lengthOK = pw.length >= 10;
@@ -18,21 +17,23 @@ function isStrongPassword(pw) {
 
   return lengthOK && upper && lower && digit && symbol;
 }
+
+// ----------------------
+// POST /api/auth/signup
+// ----------------------
 router.post('/signup', async (req, res) => {
   try {
-    // ✅ Safe destructuring
     const { username, password } = req.body || {};
 
-    // ✅ Validate presence first
     if (!username || !password) {
       console.log('Signup missing fields. Body =', req.body);
       return res.status(400).json({ error: 'Username and password are required.' });
     }
 
-    // ✅ Then strong password check
     if (!isStrongPassword(password)) {
       return res.status(400).json({
-        error: 'Password must be at least 10 chars and include uppercase, lowercase, number, and symbol.'
+        error:
+          'Password must be at least 10 chars and include uppercase, lowercase, number, and symbol.'
       });
     }
 
@@ -48,9 +49,9 @@ router.post('/signup', async (req, res) => {
       passwordHash: hash
     });
 
-    await GameState.create({ user: user._id });
-
+    // ✅ store username & userId in session
     req.session.userId = user._id.toString();
+    req.session.username = user.username;
 
     res.status(201).json({ message: 'Signup successful', username: user.username });
   } catch (err) {
@@ -58,10 +59,17 @@ router.post('/signup', async (req, res) => {
     res.status(500).json({ error: 'Server error during signup' });
   }
 });
+
+// ----------------------
+// POST /api/auth/login
+// ----------------------
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body || {};
 
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password are required.' });
+    }
 
     const user = await User.findOne({ username });
     if (!user) {
@@ -73,15 +81,20 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Invalid username or password.' });
     }
 
-    // Successful auth – create session
+    // ✅ Successful auth – create session
     req.session.userId = user._id.toString();
+    req.session.username = user.username;
 
     res.json({ message: 'Login successful', username: user.username });
   } catch (err) {
-    console.error(err);
+    console.error('Error in /login:', err);
     res.status(500).json({ error: 'Server error during login' });
   }
 });
+
+// ----------------------
+// POST /api/auth/logout
+// ----------------------
 router.post('/logout', (req, res) => {
   req.session.destroy(err => {
     if (err) {
