@@ -75,6 +75,7 @@ router.post('/login', async (req, res) => {
 
     // Successful auth – create session
     req.session.userId = user._id.toString();
+    req.session.username = user.username;
 
     res.json({ message: 'Login successful', username: user.username });
   } catch (err) {

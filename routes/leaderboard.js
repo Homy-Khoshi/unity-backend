@@ -7,7 +7,7 @@ const requireAuth = require('../middleware/requireAuth');
 
 // POST /api/leaderboard/:levelId
 // Body: { timeSec }
-router.post('/:levelId', requireAuth, async (req, res) => {
+router.post('/:levelId', async (req, res) => {
   try {
     const userId  = req.session.userId;         
     const levelId = parseInt(req.params.levelId, 10);

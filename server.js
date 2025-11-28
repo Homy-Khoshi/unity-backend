@@ -40,8 +40,9 @@ app.use(session({
   store: MongoStore.create({ mongoUrl: mongoUri }),
   cookie: {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 1000 * 60 * 60 * 24 * 7
+    maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+    sameSite: 'none',                // because Unity is cross-site over HTTPS
+    secure: true,     
   }
 }));
 
