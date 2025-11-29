@@ -38,10 +38,10 @@ router.post('/signup', async (req, res) => {
       passwordHash: hash,
     });
 
-    // Optionally also create an initial GameState here
-    await GameState.create({ user: user._id });
+    // 🔹 REMOVE THIS FOR NOW – it’s optional and causing headaches
+    // await GameState.create({ user: user._id });
 
-    // 🔹 IMPORTANT: create a session and set userId
+    // create a session and set userId
     req.session.userId = user._id.toString();
     req.session.username = user.username;
 
@@ -56,6 +56,7 @@ router.post('/signup', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+
 
 router.post('/login', async (req, res) => {
   try {
