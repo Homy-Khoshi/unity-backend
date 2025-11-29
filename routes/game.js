@@ -1,45 +1,85 @@
+// routes/game.js
 const express = require('express');
-const GameState = require('../models/GameState');
+const Checkpoint = require('../models/Checkpoint');
 const requireAuth = require('../middleware/requireAuth');
 
 const router = express.Router();
 
-// Get current user's game state
+function getUsername(req) {
+  return req.session && req.session.username;
+}
+
+// -------------------------------------
+// GET /api/game/state
+//  -> get (or create) current user's checkpoint
+// -------------------------------------
 router.get('/state', requireAuth, async (req, res) => {
   try {
-    const userId = req.session.userId;
-    const state = await GameState.findOne({ user: userId });
-
-    if (!state) {
-      // Create default if none exists
-      const newState = await GameState.create({ user: userId });
-      return res.json(newState);
+    const username = getUsername(req);
+    if (!username) {
+      return res.status(401).json({ error: 'Not logged in' });
     }
 
-    res.json(state);
+    let state = await Checkpoint.findOne({ username });
+
+    if (!state) {
+      // Create default checkpoint if none exists
+      state = await Checkpoint.create({
+        username,
+        level: 1,
+        coins: 0,
+        lastScene: '1'
+      });
+    }
+
+    // Only send the important fields to Unity
+    res.json({
+      username: state.username,
+      level: state.level,
+      coins: state.coins,
+      lastScene: state.lastScene
+    });
   } catch (err) {
-    console.error(err);
+    console.error('Error in GET /api/game/state:', err);
     res.status(500).json({ error: 'Error fetching game state' });
   }
 });
 
-// Update current user's game state
-router.post('/state', requireAuth, async (req, res) => {
+// -------------------------------------
+// POST /api/game/checkpoint
+//  -> update lastScene (and optional level/coins)
+// -------------------------------------
+router.post('/checkpoint', requireAuth, async (req, res) => {
   try {
-    const userId = req.session.userId;
-    const update = req.body;
+    const username = getUsername(req);
+    if (!username) {
+      return res.status(401).json({ error: 'Not logged in' });
+    }
 
-    // Authorization: user can ONLY edit their own state
-    // We ignore any userId in the body.
-    const state = await GameState.findOneAndUpdate(
-      { user: userId },
+    const { lastScene, level, coins } = req.body || {};
+
+    if (!lastScene || typeof lastScene !== 'string') {
+      return res.status(400).json({ error: 'lastScene is required' });
+    }
+
+    const update = { lastScene };
+    if (typeof level === 'number') update.level = level;
+    if (typeof coins === 'number') update.coins = coins;
+
+    const state = await Checkpoint.findOneAndUpdate(
+      { username },
       update,
       { new: true, upsert: true }
     );
 
-    res.json(state);
+    res.json({
+      username: state.username,
+      level: state.level,
+      coins: state.coins,
+      lastScene: state.lastScene
+    });
   } catch (err) {
-    console.error(err);
+    console.error('Error in POST /api/game/checkpoint:', err);
     res.status(500).json({ error: 'Error updating game state' });
   }
 });

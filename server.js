@@ -34,7 +34,7 @@ mongoose.connect(mongoUri)
   .catch(err => console.error(err));
 
 app.use(session({
-  secret: process.env.NODE_SESSION_SECRET,  
+  secret: process.env.SESSION_SECRET,  
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({ mongoUrl: mongoUri }),
