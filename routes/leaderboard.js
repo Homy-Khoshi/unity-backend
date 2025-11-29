@@ -9,9 +9,8 @@ const requireAuth = require('../middleware/requireAuth');
 // Body: { timeSec }
 router.post('/:levelId', async (req, res) => {
   try {
-    const userId  = req.session.userId;         
     const levelId = parseInt(req.params.levelId, 10);
-    const { timeSec } = req.body;
+    const { timeSec, username: bodyUsername } = req.body;
 
     if (!Number.isFinite(timeSec) || timeSec <= 0) {
       return res.status(400).json({ error: 'Invalid timeSec' });
@@ -20,12 +19,19 @@ router.post('/:levelId', async (req, res) => {
       return res.status(400).json({ error: 'Invalid levelId' });
     }
 
-    // get username from User collection
-    const user = await User.findById(userId).lean();
-    if (!user || !user.username) {
+    let username = bodyUsername;
+
+    // Optional: if session happens to work later, prefer that
+    if (req.session && req.session.userId) {
+      const user = await User.findById(req.session.userId).lean();
+      if (user && user.username) {
+        username = user.username;
+      }
+    }
+
+    if (!username) {
       return res.status(400).json({ error: 'User not found or missing username' });
     }
-    const username = user.username;
 
     // upsert best time for this username + level
     const existing = await Run.findOne({ username, level: levelId });
@@ -39,10 +45,11 @@ router.post('/:levelId', async (req, res) => {
 
     return res.json({ success: true });
   } catch (err) {
-    console.error('Submit run error:', err);
+    console.error('Submit leaderboard error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
+
 
 // GET /api/leaderboard/:levelId?limit=5
 router.get('/:levelId', async (req, res) => {
