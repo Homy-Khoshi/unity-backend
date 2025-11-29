@@ -4,7 +4,7 @@ const router = express.Router();
 const Run = require('../models/Run');
 const User = require('../models/User');
 
-const TOP_N = 10;
+const TOP_N = 5;
 // POST /api/leaderboard/:levelId
 // Body: { timeSec: number, username: string }
 router.post('/:levelId', async (req, res) => {
