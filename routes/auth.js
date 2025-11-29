@@ -72,26 +72,24 @@ router.post('/login', async (req, res) => {
     }
 
     req.session.regenerate(err => {
-      if (err) {
-        console.error('Session regenerate error:', err);
-        return res.status(500).json({ error: 'Server error' });
+    if (err) return res.status(500).json({ error: 'Session error' });
+
+    req.session.userId = user._id.toString();
+    req.session.username = user.username;
+
+    req.session.save(err2 => {
+      if (err2) {
+        console.error('Session save error:', err2);
+        return res.status(500).json({ error: 'Session save failed' });
       }
-
-      req.session.userId = user._id.toString();
-      req.session.username = user.username;
-
-      console.log('Login set session:', req.sessionID, req.session);
-
-      // TEST COOKIE – should *definitely* show up in Unity headers
-      res.cookie('unityTest', 'hello', {
-        // no special flags
-      });
 
       return res.json({
         message: 'Login successful',
         username: user.username,
       });
     });
+  });
+
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: 'Server error' });
