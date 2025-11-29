@@ -57,7 +57,6 @@ router.post('/signup', async (req, res) => {
   }
 });
 
-// POST /api/auth/login
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -72,7 +71,6 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid username or password' });
     }
 
-    // IMPORTANT: create/update session *before* sending response
     req.session.regenerate(err => {
       if (err) {
         console.error('Session regenerate error:', err);
