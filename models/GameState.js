@@ -19,4 +19,5 @@ const gameStateSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.models.GameState || mongoose.model('GameState', gameStateSchema);
+module.exports =
+  mongoose.models.GameState || mongoose.model('GameState', gameStateSchema);

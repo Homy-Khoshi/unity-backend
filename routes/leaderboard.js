@@ -26,6 +26,7 @@ router.post('/:levelId', async (req, res) => {
       return res.status(400).json({ error: 'Missing username' });
     }
 
+    // find the User document by username string
     const user = await User.findOne({ username }).lean();
     if (!user) {
       return res.status(400).json({ error: 'User not found' });
@@ -33,6 +34,7 @@ router.post('/:levelId', async (req, res) => {
 
     const timeMs = Math.round(timeNum * 1000);
 
+    // one best time per user per levelId
     let run = await Run.findOne({
       username: user._id,
       levelId,
@@ -52,7 +54,6 @@ router.post('/:levelId', async (req, res) => {
     return res.json({ success: true });
   } catch (err) {
     console.error('Submit leaderboard error:', err);
-    // TEMP: send the message so you can see what's wrong in Unity
     return res.status(500).json({ error: err.message || 'Server error' });
   }
 });
@@ -68,12 +69,12 @@ router.get('/:levelId', async (req, res) => {
     const runs = await Run.find({ levelId })
       .sort({ timeMs: 1 })
       .limit(20)
-      .populate('username', 'username');
+      .populate('username', 'username'); // bring back the username string
 
     const scores = runs.map(r => ({
       playerName: r.username.username,
       timeSec: r.timeMs / 1000,
-      createdAt: r.createdAt,
+      createdAt: r.created_at,
     }));
 
     return res.json({ levelId, scores });
