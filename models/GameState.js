@@ -1,9 +1,22 @@
+// models/GameState.js
 const mongoose = require('mongoose');
 
-const runSchema = new mongoose.Schema({
-  username: { type: String, required: true },
-  level: { type: Number, required: true },
-  timeSec: { type: Number, required: true },
-}, { timestamps: true });
+const gameStateSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      unique: true,          // one game state per user
+    },
+    levelId: {
+      type: Number,
+      default: 1,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
 
-module.exports = mongoose.model('Run', runSchema);
+module.exports = mongoose.model('GameState', gameStateSchema);
