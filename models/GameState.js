@@ -7,7 +7,7 @@ const gameStateSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      unique: true,          // one game state per user
+      unique: true, // one game state per user
     },
     levelId: {
       type: Number,
@@ -19,4 +19,4 @@ const gameStateSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model('GameState', gameStateSchema);
+module.exports = mongoose.models.GameState || mongoose.model('GameState', gameStateSchema);
