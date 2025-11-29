@@ -2,7 +2,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
-const GameState = require('../models/GameState');
+//const GameState = require('../models/GameState');
 const router = express.Router();
 
 // Simple password strength check (you already had something similar)
@@ -33,34 +33,24 @@ router.post('/signup', async (req, res) => {
     }
 
     const hash = await bcrypt.hash(password, 10);
-    const user = await User.create({
-      username,
-      passwordHash: hash,
-    });
+    const user = await User.create({ username, passwordHash: hash });
 
-    // 🔹 REMOVE THIS FOR NOW – it’s optional and causing headaches
-    // await GameState.create({ user: user._id });
-
-    // create a session and set userId
-    req.session.userId = user._id.toString();
-    req.session.username = user.username;
-
-    console.log('Signup created session', req.sessionID, req.session.userId);
-
-    res.json({
+  
+    return res.status(201).json({
       message: 'Signup ok',
       username: user.username,
     });
   } catch (err) {
     console.error('Signup error', err);
-    res.status(500).json({ error: 'Server error' });
+    return res.status(500).json({ error: 'Server error' });
   }
 });
 
 
+
 router.post('/login', async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, password } = req.body || {};
 
     const user = await User.findOne({ username });
     if (!user) {
@@ -72,30 +62,22 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid username or password' });
     }
 
-    req.session.regenerate(err => {
-    if (err) return res.status(500).json({ error: 'Session error' });
+    // If you still want a session, keep this simple:
+    if (req.session) {
+      req.session.userId = user._id.toString();
+      req.session.username = user.username;
+    }
 
-    req.session.userId = user._id.toString();
-    req.session.username = user.username;
-
-    req.session.save(err2 => {
-      if (err2) {
-        console.error('Session save error:', err2);
-        return res.status(500).json({ error: 'Session save failed' });
-      }
-
-      return res.json({
-        message: 'Login successful',
-        username: user.username,
-      });
+    return res.json({
+      message: 'Login successful',
+      username: user.username,
     });
-  });
-
   } catch (err) {
     console.error('Login error:', err);
-    res.status(500).json({ error: 'Server error' });
+    return res.status(500).json({ error: 'Server error' });
   }
 });
+
 
 
 
