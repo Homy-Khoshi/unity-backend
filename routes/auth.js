@@ -1,3 +1,4 @@
+// routes/auth.js
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
@@ -5,84 +6,98 @@ const GameState = require('../models/GameState');
 
 const router = express.Router();
 
+// Simple password strength check (you already had something similar)
 function isStrongPassword(pw) {
-  if (typeof pw !== 'string') {
-    return false; // or throw, but false is fine for validation
-  }
-
+  if (typeof pw !== 'string') return false;
   const lengthOK = pw.length >= 10;
   const upper = /[A-Z]/.test(pw);
   const lower = /[a-z]/.test(pw);
   const digit = /[0-9]/.test(pw);
-  const symbol = /[^A-Za-z0-9]/.test(pw);
-
-  return lengthOK && upper && lower && digit && symbol;
+  return lengthOK && upper && lower && digit;
 }
+
+// POST /api/auth/signup
 router.post('/signup', async (req, res) => {
   try {
-    // ✅ Safe destructuring
     const { username, password } = req.body || {};
 
-    // ✅ Validate presence first
     if (!username || !password) {
-      console.log('Signup missing fields. Body =', req.body);
-      return res.status(400).json({ error: 'Username and password are required.' });
+      return res.status(400).json({ error: 'Username and password required' });
     }
-
-    // ✅ Then strong password check
     if (!isStrongPassword(password)) {
-      return res.status(400).json({
-        error: 'Password must be at least 10 chars and include uppercase, lowercase, number, and symbol.'
-      });
+      return res.status(400).json({ error: 'Password not strong enough' });
     }
 
     const existing = await User.findOne({ username });
     if (existing) {
-      return res.status(400).json({ error: 'Username already taken.' });
+      return res.status(409).json({ error: 'Username already taken' });
     }
 
-    const hash = await bcrypt.hash(password, 12);
-
+    const hash = await bcrypt.hash(password, 10);
     const user = await User.create({
       username,
-      passwordHash: hash
+      passwordHash: hash,
     });
 
+    // Optionally also create an initial GameState here
     await GameState.create({ user: user._id });
 
+    // 🔹 IMPORTANT: create a session and set userId
     req.session.userId = user._id.toString();
+    req.session.username = user.username;
 
-    res.status(201).json({ message: 'Signup successful', username: user.username });
+    console.log('Signup created session', req.sessionID, req.session.userId);
+
+    res.json({
+      message: 'Signup ok',
+      username: user.username,
+    });
   } catch (err) {
-    console.error('Error in /signup:', err);
-    res.status(500).json({ error: 'Server error during signup' });
+    console.error('Signup error', err);
+    res.status(500).json({ error: 'Server error' });
   }
 });
+
+// POST /api/auth/login
 router.post('/login', async (req, res) => {
   try {
-    const { username, password } = req.body || {};
-
+    const { username, password } = req.body;
 
     const user = await User.findOne({ username });
     if (!user) {
-      return res.status(400).json({ error: 'Invalid username or password.' });
+      return res.status(401).json({ error: 'Invalid username or password' });
     }
 
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) {
-      return res.status(400).json({ error: 'Invalid username or password.' });
+      return res.status(401).json({ error: 'Invalid username or password' });
     }
 
-    // Successful auth – create session
-    req.session.userId = user._id.toString();
-    req.session.username = user.username;
+    // IMPORTANT: create/update session *before* sending response
+    req.session.regenerate(err => {
+      if (err) {
+        console.error('Session regenerate error:', err);
+        return res.status(500).json({ error: 'Server error' });
+      }
 
-    res.json({ message: 'Login successful', username: user.username });
+      req.session.userId = user._id.toString();
+      req.session.username = user.username;
+
+      console.log('Login set session:', req.sessionID, req.session);
+
+      return res.json({
+        message: 'Login successful',
+        username: user.username,
+      });
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error during login' });
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'Server error' });
   }
 });
+
+
+// POST /api/auth/logout
 router.post('/logout', (req, res) => {
   req.session.destroy(err => {
     if (err) {
