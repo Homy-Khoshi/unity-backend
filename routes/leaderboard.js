@@ -24,7 +24,7 @@ router.post('/:levelId', async (req, res) => {
       return res.status(400).json({ error: 'Missing username' });
     }
 
-    // Find the user by username (string field on User)
+    // Find the user by username string
     const user = await User.findOne({ username }).lean();
     if (!user) {
       return res.status(400).json({ error: 'User not found' });
@@ -68,14 +68,14 @@ router.get('/:levelId', async (req, res) => {
     }
 
     const runs = await Run.find({ levelId })
-      .sort({ timeMs: 1 })         // fastest first
+      .sort({ timeMs: 1 })          // fastest first
       .limit(20)
-      .populate('username', 'username'); // get the username string
+      .populate('username', 'username'); // fetch the username string
 
     const scores = runs.map(r => ({
-      playerName: r.username.username, // r.username is a User doc
-      timeSec: r.timeMs / 1000,
-      createdAt: r.created_at,
+      playerName: r.username.username,    // this becomes C# playerName
+      timeSec: r.timeMs / 1000,           // this becomes C# timeSec
+      createdAt: r.created_at,            // becomes C# createdAt (string)
     }));
 
     return res.json({ levelId, scores });
