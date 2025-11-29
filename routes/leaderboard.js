@@ -4,6 +4,7 @@ const router = express.Router();
 const Run = require('../models/Run');
 const User = require('../models/User');
 
+const TOP_N = 10;
 // POST /api/leaderboard/:levelId
 // Body: { timeSec: number, username: string }
 router.post('/:levelId', async (req, res) => {
@@ -68,7 +69,7 @@ router.get('/:levelId', async (req, res) => {
 
     const runs = await Run.find({ levelId })
       .sort({ timeMs: 1 })
-      .limit(20)
+      .limit(TOP_N)
       .populate('username', 'username'); // bring back the username string
 
     const scores = runs.map(r => ({
