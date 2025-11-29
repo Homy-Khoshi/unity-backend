@@ -82,6 +82,11 @@ router.post('/login', async (req, res) => {
 
       console.log('Login set session:', req.sessionID, req.session);
 
+      // TEST COOKIE – should *definitely* show up in Unity headers
+      res.cookie('unityTest', 'hello', {
+        // no special flags
+      });
+
       return res.json({
         message: 'Login successful',
         username: user.username,
@@ -92,6 +97,7 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+
 
 
 // POST /api/auth/logout
