@@ -1,29 +1,25 @@
 // routes/game.js
 const express = require('express');
 const Checkpoint = require('../models/Checkpoint');
-const requireAuth = require('../middleware/requireAuth');
 
 const router = express.Router();
 
-function getUsername(req) {
-  return req.session && req.session.username;
-}
-
-// -------------------------------------
-// GET /api/game/state
-//  -> get (or create) current user's checkpoint
-// -------------------------------------
-router.get('/state', requireAuth, async (req, res) => {
+/**
+ * GET /api/game/state?username=foo
+ * Returns (and creates if missing) the checkpoint for the given username.
+ * We no longer depend on sessions here, so Unity can pass username directly.
+ */
+router.get('/state', async (req, res) => {
   try {
-    const username = getUsername(req);
+    const username = req.query.username;
+
     if (!username) {
-      return res.status(401).json({ error: 'Not logged in' });
+      return res.status(400).json({ error: 'username query parameter is required' });
     }
 
     let state = await Checkpoint.findOne({ username });
 
     if (!state) {
-      // Create default checkpoint if none exists
       state = await Checkpoint.create({
         username,
         level: 1,
@@ -32,8 +28,7 @@ router.get('/state', requireAuth, async (req, res) => {
       });
     }
 
-    // Only send the important fields to Unity
-    res.json({
+    return res.json({
       username: state.username,
       level: state.level,
       coins: state.coins,
@@ -45,21 +40,19 @@ router.get('/state', requireAuth, async (req, res) => {
   }
 });
 
-// -------------------------------------
-// POST /api/game/checkpoint
-//  -> update lastScene (and optional level/coins)
-// -------------------------------------
-router.post('/checkpoint', requireAuth, async (req, res) => {
+/**
+ * POST /api/game/checkpoint
+ * Body: { "username": "foo", "lastScene": "2", "level": 2, "coins": 100 }
+ */
+router.post('/checkpoint', async (req, res) => {
   try {
-    const username = getUsername(req);
+    const { username, lastScene, level, coins } = req.body || {};
+
     if (!username) {
-      return res.status(401).json({ error: 'Not logged in' });
+      return res.status(400).json({ error: 'username is required' });
     }
-
-    const { lastScene, level, coins } = req.body || {};
-
     if (!lastScene || typeof lastScene !== 'string') {
-      return res.status(400).json({ error: 'lastScene is required' });
+      return res.status(400).json({ error: 'lastScene is required as a string' });
     }
 
     const update = { lastScene };
@@ -80,7 +73,7 @@ router.post('/checkpoint', requireAuth, async (req, res) => {
     });
   } catch (err) {
     console.error('Error in POST /api/game/checkpoint:', err);
-    res.status(500).json({ error: 'Error updating game state' });
+    res.status(500).json({ error: 'Error updating checkpoint' });
   }
 });
 
